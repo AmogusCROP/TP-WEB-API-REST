@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from flask_restx import Api, Resource, fields
 
 app = Flask(__name__)
-api = Api(app, version='1.0', title='API REST Documentation',
+api = Api(app, version='1.0', title='API REST',
           description='Une API REST simple avec Swagger et Flask-RESTX.')
 
 # Modèle d'objet pour Swagger
