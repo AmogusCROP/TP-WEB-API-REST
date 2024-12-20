@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-white text-center">Récapitulatif de la commande</h2>
+    <div class="row justify-content-center mt-4">
+        {% if cart_items %}
+        <ul class="list-group col-6">
+            {% for item in cart_items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <img src="{{ item.image }}" alt="Image Commande" class="img-thumbnail" style="height: 80px; width: 80px;">
+                <span class="font-weight-bold">Quantité : {{ item.quantity }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-white text-center">Votre panier est vide.</p>
+        {% endif %}
+    </div>
+    <div class="text-center mt-4">
+        <a href="/" class="btn btn-primary">Retour à la galerie</a>
+    </div>
+</div>
+{% endblock content %}
