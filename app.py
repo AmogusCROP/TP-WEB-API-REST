@@ -2,14 +2,14 @@ from flask import Flask, jsonify, request
 from flask_restx import Api, Resource, fields
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import scoped_session, sessionmaker, relationship
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='Champomix API',
           description='API REST pour la gestion de la base Champomix')
 
 # Configuration de la base de données
-DATABASE_URL = "postgresql://postgres:root@localhost:5432/API-Champomix"
+DATABASE_URL = "postgresql://ug4uwcbl5qnrmkdujtl4:MVIoSCckMDQANgNOiCEG1sB94lmPw5@baqutj74xmaqvezj2pbz-postgresql.services.clever-cloud.com:50013/baqutj74xmaqvezj2pbz"
 engine = create_engine(DATABASE_URL)
 Session = scoped_session(sessionmaker(bind=engine))
 session = Session()
@@ -29,11 +29,13 @@ class User(Base):
     pseudo = Column(String(255), nullable=False)
     password = Column(String(255), nullable=False)
 
+# Modèle Order
 class Order(Base):
     __tablename__ = 'orders'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    user = relationship("User", backref="orders")
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+
+orders = relationship('Order', backref=backref('user', cascade='all, delete-orphan'), cascade='all, delete')
 
 class OrderChampomi(Base):
     __tablename__ = 'order_champomi'
@@ -51,8 +53,35 @@ champomi_model = api.model('Champomi', {
     'description': fields.String(description='Description du produit')
 })
 
+# Modèle pour Swagger
+user_model = api.model('User', {
+    'id': fields.Integer(readOnly=True, description='ID unique de l\'utilisateur'),
+    'pseudo': fields.String(required=True, description='Pseudo de l\'utilisateur'),
+    'password': fields.String(required=True, description='Mot de passe de l\'utilisateur')
+})
+
+# Modèle pour Swagger
+order_model = api.model('Order', {
+    'id': fields.Integer(readOnly=True, description='ID unique de la commande'),
+    'user_id': fields.Integer(required=True, description='ID de l\'utilisateur associé')
+})
+
+order_champomi_model = api.model('OrderChampomi', {
+    'order_id': fields.Integer(required=True, description='ID de la commande'),
+    'champomi_id': fields.Integer(required=True, description='ID du produit Champomi')
+})
+
+# Namespace pour Orders
+ns_order = api.namespace('orders', description='Opérations sur les commandes')
+
+# Namespace pour Users
+ns_user = api.namespace('users', description='Opérations sur les utilisateurs')
+
 # Namespace pour Champomi
 ns_champomi = api.namespace('champomi', description='Opérations sur les produits Champomi')
+
+ns_order_champomi = api.namespace('order_champomi', description='Opérations sur les relations commandes et produits')
+
 
 @ns_champomi.route('/')
 class ChampomiList(Resource):
@@ -115,5 +144,261 @@ class ChampomiResource(Resource):
         session.commit()
         return {'message': 'Champomi supprimé'}, 200
 
+ns_user = api.namespace('users', description='Opérations sur les utilisateurs')
+
+@ns_user.route('/')
+class UserList(Resource):
+    @ns_user.doc('list_users')
+    def get(self):
+        """Retourner la liste de tous les utilisateurs"""
+        users = session.query(User).all()
+        return [
+            {
+                'id': u.id,
+                'pseudo': u.pseudo,
+                'password': u.password
+            } for u in users
+        ], 200
+
+    @ns_user.doc('create_user')
+    @ns_user.expect(user_model)
+    def post(self):
+        """Créer un nouvel utilisateur"""
+        data = request.json
+        user = User(pseudo=data['pseudo'], password=data['password'])
+        session.add(user)
+        session.commit()
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 201
+
+@ns_user.route('/<int:id>')
+@ns_user.response(404, 'Utilisateur non trouvé')
+@ns_user.param('id', 'ID de l\'utilisateur')
+class UserResource(Resource):
+    @ns_user.doc('get_user')
+    def get(self, id):
+        """Retourner un utilisateur par son ID"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+
+    @ns_user.doc('update_user')
+    @ns_user.expect(user_model)
+    def put(self, id):
+        """Mettre à jour complètement un utilisateur"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+        data = request.json
+        user.pseudo = data['pseudo']
+        user.password = data['password']
+        session.commit()
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+
+    @ns_user.doc('delete_user')
+    def delete(self, id):
+        """Supprimer un utilisateur"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+        session.delete(user)
+        session.commit()
+        return {'message': 'Utilisateur supprimé'}, 200
+
+@ns_user.route('/')
+class UserList(Resource):
+    @ns_user.doc('list_users')
+    def get(self):
+        """Retourner la liste de tous les utilisateurs"""
+        users = session.query(User).all()
+        return [
+            {
+                'id': u.id,
+                'pseudo': u.pseudo,
+                'password': u.password
+            } for u in users
+        ], 200
+
+    @ns_user.doc('create_user')
+    @ns_user.expect(user_model)
+    def post(self):
+        """Créer un nouvel utilisateur"""
+        data = request.json
+        user = User(pseudo=data['pseudo'], password=data['password'])
+        session.add(user)
+        session.commit()
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 201
+
+@ns_user.route('/<int:id>')
+@ns_user.response(404, 'Utilisateur non trouvé')
+@ns_user.param('id', 'ID de l\'utilisateur')
+class UserResource(Resource):
+    @ns_user.doc('get_user')
+    def get(self, id):
+        """Retourner un utilisateur par son ID"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+
+    @ns_user.doc('update_user')
+    @ns_user.expect(user_model)
+    def put(self, id):
+        """Mettre à jour complètement un utilisateur"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+        data = request.json
+        user.pseudo = data['pseudo']
+        user.password = data['password']
+        session.commit()
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+
+    @ns_user.doc('delete_user')
+    def delete(self, id):
+        """Supprimer un utilisateur"""
+        user = session.query(User).get(id)
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+
+        # Supprimer les commandes associées à l'utilisateur
+        orders = session.query(Order).filter(Order.user_id == id).all()
+        for order in orders:
+            session.delete(order)
+
+        session.delete(user)
+        session.commit()
+        return {'message': 'Utilisateur et ses commandes associés supprimés'}, 200
+
+# Ajouter le namespace à l'API
+api.add_namespace(ns_user)
+
+@ns_order.route('/')
+class OrderList(Resource):
+    @ns_order.doc('list_orders')
+    def get(self):
+        """Retourner la liste de toutes les commandes"""
+        orders = session.query(Order).all()
+        return [
+            {
+                'id': o.id,
+                'user_id': o.user_id
+            } for o in orders
+        ], 200
+
+    @ns_order.doc('create_order')
+    @ns_order.expect(order_model)
+    def post(self):
+        """Créer une nouvelle commande"""
+        data = request.json
+
+        # Vérifier si l'utilisateur existe
+        user = session.query(User).get(data['user_id'])
+        if not user:
+            return {'message': 'Utilisateur non trouvé'}, 404
+
+        # Créer la commande
+        order = Order(user_id=data['user_id'])
+        session.add(order)
+        session.commit()
+        return {'id': order.id, 'user_id': order.user_id}, 201
+
+@ns_order.route('/<int:id>')
+@ns_order.response(404, 'Commande non trouvée')
+@ns_order.param('id', 'ID de la commande')
+class OrderResource(Resource):
+    @ns_order.doc('get_order')
+    def get(self, id):
+        """Retourner une commande par son ID"""
+        order = session.query(Order).get(id)
+        if not order:
+            return {'message': 'Commande non trouvée'}, 404
+        return {'id': order.id, 'user_id': order.user_id}, 200
+
+    @ns_order.doc('update_order')
+    @ns_order.expect(order_model)
+    def put(self, id):
+        """Mettre à jour complètement une commande"""
+        order = session.query(Order).get(id)
+        if not order:
+            return {'message': 'Commande non trouvée'}, 404
+        data = request.json
+        order.user_id = data['user_id']
+        session.commit()
+        return {'id': order.id, 'user_id': order.user_id}, 200
+
+    @ns_order.doc('delete_order')
+    def delete(self, id):
+        """Supprimer une commande"""
+        order = session.query(Order).get(id)
+        if not order:
+            return {'message': 'Commande non trouvée'}, 404
+        session.delete(order)
+        session.commit()
+        return {'message': 'Commande supprimée'}, 200
+
+@ns_order_champomi.route('/')
+class OrderChampomiList(Resource):
+    @ns_order_champomi.doc('list_order_champomi')
+    def get(self):
+        """Retourner toutes les relations commande-produit"""
+        order_champomi_list = session.query(OrderChampomi).all()
+        return [
+            {
+                'order_id': oc.order_id,
+                'champomi_id': oc.champomi_id
+            } for oc in order_champomi_list
+        ], 200
+
+    @ns_order_champomi.doc('create_order_champomi')
+    @ns_order_champomi.expect(order_champomi_model)
+    def post(self):
+        """Créer une nouvelle relation commande-produit"""
+        data = request.json
+
+        # Vérifier si la commande et le produit existent
+        order = session.query(Order).get(data['order_id'])
+        champomi = session.query(Champomi).get(data['champomi_id'])
+
+        if not order:
+            return {'message': 'Commande non trouvée'}, 404
+
+        if not champomi:
+            return {'message': 'Produit Champomi non trouvé'}, 404
+
+        # Ajouter la relation
+        order_champomi = OrderChampomi(order_id=data['order_id'], champomi_id=data['champomi_id'])
+        session.add(order_champomi)
+        session.commit()
+        return {
+            'order_id': order_champomi.order_id,
+            'champomi_id': order_champomi.champomi_id
+        }, 201
+
+@ns_order_champomi.route('/<int:order_id>/<int:champomi_id>')
+@ns_order_champomi.response(404, 'Relation commande-produit non trouvée')
+@ns_order_champomi.param('order_id', 'ID de la commande')
+@ns_order_champomi.param('champomi_id', 'ID du produit Champomi')
+class OrderChampomiResource(Resource):
+    @ns_order_champomi.doc('get_order_champomi')
+    def get(self, order_id, champomi_id):
+        """Retourner une relation commande-produit"""
+        order_champomi = session.query(OrderChampomi).filter_by(order_id=order_id, champomi_id=champomi_id).first()
+        if not order_champomi:
+            return {'message': 'Relation commande-produit non trouvée'}, 404
+        return {
+            'order_id': order_champomi.order_id,
+            'champomi_id': order_champomi.champomi_id
+        }, 200
+
+    @ns_order_champomi.doc('delete_order_champomi')
+    def delete(self, order_id, champomi_id):
+        """Supprimer une relation commande-produit"""
+        order_champomi = session.query(OrderChampomi).filter_by(order_id=order_id, champomi_id=champomi_id).first()
+        if not order_champomi:
+            return {'message': 'Relation commande-produit non trouvée'}, 404
+        session.delete(order_champomi)
+        session.commit()
+        return {'message': 'Relation commande-produit supprimée'}, 200
 if __name__ == '__main__':
     app.run(debug=True)
