@@ -9,7 +9,7 @@ api = Api(app, version='1.0', title='Champomix API',
           description='API REST pour la gestion de la base Champomix')
 
 # Configuration de la base de données
-DATABASE_URL = "postgresql://ug4uwcbl5qnrmkdujtl4:MVIoSCckMDQANgNOiCEG1sB94lmPw5@baqutj74xmaqvezj2pbz-postgresql.services.clever-cloud.com:50013/baqutj74xmaqvezj2pbz"
+DATABASE_URL = "postgresql://postgres:root@localhost:5432/API-Champomix"
 engine = create_engine(DATABASE_URL)
 Session = scoped_session(sessionmaker(bind=engine))
 session = Session()
@@ -66,11 +66,6 @@ order_model = api.model('Order', {
     'user_id': fields.Integer(required=True, description='ID de l\'utilisateur associé')
 })
 
-order_champomi_model = api.model('OrderChampomi', {
-    'order_id': fields.Integer(required=True, description='ID de la commande'),
-    'champomi_id': fields.Integer(required=True, description='ID du produit Champomi')
-})
-
 # Namespace pour Orders
 ns_order = api.namespace('orders', description='Opérations sur les commandes')
 
@@ -79,9 +74,6 @@ ns_user = api.namespace('users', description='Opérations sur les utilisateurs')
 
 # Namespace pour Champomi
 ns_champomi = api.namespace('champomi', description='Opérations sur les produits Champomi')
-
-ns_order_champomi = api.namespace('order_champomi', description='Opérations sur les relations commandes et produits')
-
 
 @ns_champomi.route('/')
 class ChampomiList(Resource):
@@ -337,68 +329,5 @@ class OrderResource(Resource):
         session.commit()
         return {'message': 'Commande supprimée'}, 200
 
-@ns_order_champomi.route('/')
-class OrderChampomiList(Resource):
-    @ns_order_champomi.doc('list_order_champomi')
-    def get(self):
-        """Retourner toutes les relations commande-produit"""
-        order_champomi_list = session.query(OrderChampomi).all()
-        return [
-            {
-                'order_id': oc.order_id,
-                'champomi_id': oc.champomi_id
-            } for oc in order_champomi_list
-        ], 200
-
-    @ns_order_champomi.doc('create_order_champomi')
-    @ns_order_champomi.expect(order_champomi_model)
-    def post(self):
-        """Créer une nouvelle relation commande-produit"""
-        data = request.json
-
-        # Vérifier si la commande et le produit existent
-        order = session.query(Order).get(data['order_id'])
-        champomi = session.query(Champomi).get(data['champomi_id'])
-
-        if not order:
-            return {'message': 'Commande non trouvée'}, 404
-
-        if not champomi:
-            return {'message': 'Produit Champomi non trouvé'}, 404
-
-        # Ajouter la relation
-        order_champomi = OrderChampomi(order_id=data['order_id'], champomi_id=data['champomi_id'])
-        session.add(order_champomi)
-        session.commit()
-        return {
-            'order_id': order_champomi.order_id,
-            'champomi_id': order_champomi.champomi_id
-        }, 201
-
-@ns_order_champomi.route('/<int:order_id>/<int:champomi_id>')
-@ns_order_champomi.response(404, 'Relation commande-produit non trouvée')
-@ns_order_champomi.param('order_id', 'ID de la commande')
-@ns_order_champomi.param('champomi_id', 'ID du produit Champomi')
-class OrderChampomiResource(Resource):
-    @ns_order_champomi.doc('get_order_champomi')
-    def get(self, order_id, champomi_id):
-        """Retourner une relation commande-produit"""
-        order_champomi = session.query(OrderChampomi).filter_by(order_id=order_id, champomi_id=champomi_id).first()
-        if not order_champomi:
-            return {'message': 'Relation commande-produit non trouvée'}, 404
-        return {
-            'order_id': order_champomi.order_id,
-            'champomi_id': order_champomi.champomi_id
-        }, 200
-
-    @ns_order_champomi.doc('delete_order_champomi')
-    def delete(self, order_id, champomi_id):
-        """Supprimer une relation commande-produit"""
-        order_champomi = session.query(OrderChampomi).filter_by(order_id=order_id, champomi_id=champomi_id).first()
-        if not order_champomi:
-            return {'message': 'Relation commande-produit non trouvée'}, 404
-        session.delete(order_champomi)
-        session.commit()
-        return {'message': 'Relation commande-produit supprimée'}, 200
 if __name__ == '__main__':
     app.run(debug=True)
