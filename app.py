@@ -9,7 +9,7 @@ api = Api(app, version='1.0', title='Champomix API',
           description='API REST pour la gestion de la base Champomix')
 
 # Configuration de la base de données
-DATABASE_URL = "postgresql://postgres:root@localhost:5432/API-Champomix"
+DATABASE_URL = "postgresql://ug4uwcbl5qnrmkdujtl4:MVIoSCckMDQANgNOiCEG1sB94lmPw5@baqutj74xmaqvezj2pbz-postgresql.services.clever-cloud.com:50013/baqutj74xmaqvezj2pbz"
 engine = create_engine(DATABASE_URL)
 Session = scoped_session(sessionmaker(bind=engine))
 session = Session()
