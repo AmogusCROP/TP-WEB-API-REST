@@ -126,7 +126,7 @@ class ChampomiResource(Resource):
         champomi.price = data['price']
         champomi.description = data.get('description')
         session.commit()
-        return {'id': champomi.id, 'name': champomi.name, 'price': float(champomi.price), 'description': champomi.description}, 200
+        return {'id': champomi.id, 'name': champomi.name, 'price': float(champomi.price), 'description': champomi.description}, 201
 
     @ns_champomi.doc('delete_champomi')
     def delete(self, id):
@@ -136,7 +136,7 @@ class ChampomiResource(Resource):
             return {'message': 'Champomi non trouvé'}, 404
         session.delete(champomi)
         session.commit()
-        return {'message': 'Champomi supprimé'}, 200
+        return {'message': 'Champomi supprimé'}, 204
 
 ns_user = api.namespace('users', description='Opérations sur les utilisateurs')
 
@@ -187,7 +187,7 @@ class UserResource(Resource):
         user.pseudo = data['pseudo']
         user.password = data['password']
         session.commit()
-        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 201
 
     @ns_user.doc('delete_user')
     def delete(self, id):
@@ -197,7 +197,7 @@ class UserResource(Resource):
             return {'message': 'Utilisateur non trouvé'}, 404
         session.delete(user)
         session.commit()
-        return {'message': 'Utilisateur supprimé'}, 200
+        return {'message': 'Utilisateur supprimé'}, 204
 
 @ns_user.route('/')
 class UserList(Resource):
@@ -246,7 +246,7 @@ class UserResource(Resource):
         user.pseudo = data['pseudo']
         user.password = data['password']
         session.commit()
-        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 200
+        return {'id': user.id, 'pseudo': user.pseudo, 'password': user.password}, 201
 
     @ns_user.doc('delete_user')
     def delete(self, id):
@@ -262,7 +262,7 @@ class UserResource(Resource):
 
         session.delete(user)
         session.commit()
-        return {'message': 'Utilisateur et ses commandes associés supprimés'}, 200
+        return {'message': 'Utilisateur et ses commandes associés supprimés'}, 204
 
 # Ajouter le namespace à l'API
 api.add_namespace(ns_user)
@@ -319,7 +319,7 @@ class OrderResource(Resource):
         data = request.json
         order.user_id = data['user_id']
         session.commit()
-        return {'id': order.id, 'user_id': order.user_id}, 200
+        return {'id': order.id, 'user_id': order.user_id}, 201
 
     @ns_order.doc('delete_order')
     def delete(self, id):
@@ -329,7 +329,7 @@ class OrderResource(Resource):
             return {'message': 'Commande non trouvée'}, 404
         session.delete(order)
         session.commit()
-        return {'message': 'Commande supprimée'}, 200
+        return {'message': 'Commande supprimée'}, 204
 
 if __name__ == '__main__':
     app.run(debug=True)
