@@ -7,7 +7,6 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
-
 api = Api(app, version='1.0', title='Champomix API',
           description='API REST pour la gestion de la base Champomix')
 
