@@ -3,8 +3,11 @@ from flask_restx import Api, Resource, fields
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 api = Api(app, version='1.0', title='Champomix API',
           description='API REST pour la gestion de la base Champomix')
 
