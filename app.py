@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_restx import Api, Resource, fields
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Text, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref, declarative_base
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -332,4 +331,4 @@ class OrderResource(Resource):
         return {'message': 'Commande supprimée'}, 204
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

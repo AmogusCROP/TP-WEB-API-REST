@@ -2,7 +2,7 @@
 FROM python:3.10
 
 # Définir le répertoire de travail
-WORKDIR /app
+WORKDIR /
 
 # Copier le fichier requirements.txt
 COPY requirements.txt .
